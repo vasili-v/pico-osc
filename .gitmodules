@@ -1,0 +1,3 @@
+[submodule "pico-con"]
+	path = pico-con
+	url = git@github.com:vasili-v/pico-con.git
