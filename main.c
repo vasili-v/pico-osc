@@ -29,8 +29,8 @@ int main()
 	banner();
 
 	puts(pico_con_loop(commands, INPUT_BUFFER_SIZE)? \
-	     "Failed to run serial console.\n" :         \
-	     "Serial console closed.\n");
+	     "Failed to run serial console." :           \
+	     "Serial console closed.");
 
 	while(1)
 		tight_loop_contents();
@@ -49,8 +49,8 @@ void banner(void)
 int help(size_t argc, char *argv[])
 {
 	printf("Available commands:\n" \
-	       "\tstatus  - prints status of current operation\n" \
-	       "\tmeasure - start a measurement routine\n" \
-	       "\thelp    - prints this message\n\n");
+	       "\tstatus      - prints status of current operation\n" \
+	       "\tmeasure [n] - start a measurement routine for n points (default " TXT(DEFAULT_POINTS) ")\n" \
+	       "\thelp        - prints this message\n\n");
 	return PICO_CON_COMMAND_SUCCESS;
 }
