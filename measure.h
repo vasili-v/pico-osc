@@ -8,5 +8,6 @@
 
 int status(size_t argc, char *argv[]);
 int measure(size_t argc, char *argv[]);
+int show_data(size_t argc, char *argv[]);
 
 #endif //MEASURE_H

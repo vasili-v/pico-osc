@@ -18,6 +18,7 @@ static int help(size_t argc, char *argv[]);
 struct pico_con_command commands[] = {
 	{"status", status},
 	{"measure", measure},
+	{"data", show_data},
 	{"help", help},
 	{NULL, NULL},
 };
@@ -50,7 +51,8 @@ int help(size_t argc, char *argv[])
 {
 	printf("Available commands:\n" \
 	       "\tstatus      - prints status of current operation\n" \
-	       "\tmeasure [n] - start a measurement routine for n points (default " TXT(DEFAULT_POINTS) ")\n" \
+	       "\tmeasure [n] - starts a measurement routine for n points (default " TXT(DEFAULT_POINTS) ")\n" \
+	       "\tdata        - prints currently available data\n" \
 	       "\thelp        - prints this message\n\n");
 	return PICO_CON_COMMAND_SUCCESS;
 }
