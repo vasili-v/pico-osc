@@ -24,4 +24,4 @@ pico_enable_stdio_uart(pico_osc 0)
 
 pico_add_extra_outputs(pico_osc)
 
-target_link_libraries(pico_osc pico_stdlib pico_con)
+target_link_libraries(pico_osc pico_stdlib pico_multicore pico_con)

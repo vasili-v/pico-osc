@@ -12,15 +12,7 @@
 
 #define INPUT_BUFFER_SIZE 255
 
-enum op_states
-{
-	OP_STATE_IDLE,
-};
-
-volatile enum op_states op_state = OP_STATE_IDLE;
-
 static void banner(void);
-static int status(size_t argc, char *argv[]);
 static int help(size_t argc, char *argv[]);
 
 struct pico_con_command commands[] = {
@@ -52,20 +44,6 @@ void banner(void)
 		putchar('.');
 	}
 	puts("\n" PROJ_DESC "\n");
-}
-
-int status(size_t argc, char *argv[])
-{
-	switch (op_state)
-	{
-	case OP_STATE_IDLE:
-		puts("Device is idle.\n");
-		break;
-	default:
-		printf("Unknown operation state: %d.\n", op_state);
-	}
-
-	return PICO_CON_COMMAND_SUCCESS;
 }
 
 int help(size_t argc, char *argv[])
