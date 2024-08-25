@@ -11,6 +11,8 @@ include("pico-con/pico-con.cmake")
 
 add_executable(pico_osc
 	main.c
+	measure.h
+	measure.c
 )
 
 add_compile_definitions(

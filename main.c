@@ -4,6 +4,8 @@
 
 #include "pico-con.h"
 
+#include "measure.h"
+
 #define SYSTICK_RVR 0xE4E1BF
 
 #define PROJ_DESC "A 1-bit oscilloscope for Raspberry Pi Pico"
@@ -23,6 +25,7 @@ static int help(size_t argc, char *argv[]);
 
 struct pico_con_command commands[] = {
 	{"status", status},
+	{"measure", measure},
 	{"help", help},
 	{NULL, NULL},
 };
@@ -68,7 +71,8 @@ int status(size_t argc, char *argv[])
 int help(size_t argc, char *argv[])
 {
 	printf("Available commands:\n" \
-	       "\tstatus - prints status of current operation\n" \
-	       "\thelp   - prints this message\n\n");
+	       "\tstatus  - prints status of current operation\n" \
+	       "\tmeasure - start a measurement routine\n" \
+	       "\thelp    - prints this message\n\n");
 	return PICO_CON_COMMAND_SUCCESS;
 }
