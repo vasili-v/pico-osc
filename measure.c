@@ -2,10 +2,18 @@
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
+#include "hardware/structs/systick.h"
 
 #include "pico-con.h"
 
 #include "measure.h"
+
+// Overflow each 120ms at 125MHz
+#define SYSTICK_RVR           (15000000 - 1)
+#define SYSTICK_COUNTFLAG     0x00010000
+#define SYSTICK_CLKSOURCE_CPU 0x00000004
+#define SYSTICK_ENABLE        0x00000001
+#define SYSTICK_CURRENT       0x00ffffff
 
 enum op_states
 {
@@ -24,6 +32,8 @@ volatile enum op_states op_state = OP_STATE_IDLE;
 size_t data_size = DEFAULT_POINTS;
 size_t data_idx = 0;
 bool *data = NULL;
+size_t *ticks = NULL;
+size_t tick_loops = -1;
 
 void measurement(void);
 
@@ -60,10 +70,21 @@ int show_data(size_t argc, char *argv[])
 		return PICO_CON_COMMAND_SUCCESS;
 	}
 
-	printf("%lu:", data_size);
-	for (size_t i = 0; i < data_size; i++)
+	if (ticks)
 	{
-		printf(" %hhu", data[i]);
+		puts("#\tTick\tValue");
+		for (size_t i = 0; i < data_size; i++)
+		{
+			printf("%lu\t%lu\t%hhu\n", i, ticks[i], data[i]);
+		}
+	}
+	else
+	{
+		puts("#\tValue");
+		for (size_t i = 0; i < data_size; i++)
+		{
+			printf("%lu\t%hhu\n", i, data[i]);
+		}
 	}
 	putchar('\n');
 
@@ -104,16 +125,31 @@ int measure(size_t argc, char *argv[])
 		}
 	}
 
+	data_idx = 0;
+
 	if (data)
 	{
 		free(data);
 		data = NULL;
 	}
-	data_idx = 0;
 	data = malloc(data_size);
 	if (!data)
 	{
 		puts("Failed to allocate memory for measurement data. Aborting.");
+		return PICO_CON_COMMAND_SUCCESS;
+	}
+
+	if (ticks)
+	{
+		free(ticks);
+		ticks = NULL;
+	}
+	ticks = malloc(data_size*sizeof(size_t));
+	if (!ticks)
+	{
+		puts("Failed to allocate memory for measurement timestamps. Aborting.");
+		free(data);
+		data = NULL;
 		return PICO_CON_COMMAND_SUCCESS;
 	}
 
@@ -135,8 +171,22 @@ void measurement(void)
 	gpio_set_dir(PROBE_PIN, GPIO_IN);
 	gpio_set_input_hysteresis_enabled(PROBE_PIN, 1);
 
+	tick_loops = -1;
+	tick_loops -= SYSTICK_RVR;
+	systick_hw->cvr = SYSTICK_RVR;
+	systick_hw->rvr = SYSTICK_RVR;
+	systick_hw->csr = SYSTICK_CLKSOURCE_CPU | SYSTICK_ENABLE;
+
 	while (data_idx < data_size)
 	{
+		int csr = systick_hw->csr;
+		int cvr = systick_hw->cvr;
+		if (csr & SYSTICK_COUNTFLAG)
+		{
+			tick_loops -= SYSTICK_RVR+1;
+		}
+
+		ticks[data_idx] = tick_loops + (cvr & SYSTICK_CURRENT);
 		data[data_idx] = gpio_get(PROBE_PIN);
 		data_idx++;
 	}

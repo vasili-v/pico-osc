@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "hardware/platform_defs.h"
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 
@@ -6,7 +7,9 @@
 
 #include "measure.h"
 
-#define SYSTICK_RVR 0xE4E1BF
+#if SYS_CLK_HZ != 125000000
+#	error "Expecting system clock at 125MHz"
+#endif
 
 #define PROJ_DESC "A 1-bit oscilloscope for Raspberry Pi Pico"
 
