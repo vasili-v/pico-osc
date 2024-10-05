@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
-#include "pico/multicore.h"
 #include "hardware/structs/systick.h"
 
 #include "pico-con.h"
@@ -9,11 +8,16 @@
 #include "measure.h"
 
 // Overflow each 120ms at 125MHz
-#define SYSTICK_RVR           (15000000 - 1)
 #define SYSTICK_COUNTFLAG     0x00010000
 #define SYSTICK_CLKSOURCE_CPU 0x00000004
 #define SYSTICK_ENABLE        0x00000001
 #define SYSTICK_CURRENT       0x00ffffff
+
+#define SYSTICK_LOOP          15000000UL
+#define SYSTICK_RVR           (SYSTICK_LOOP - 1)
+#define SYSTICK_FULL_LOOPS_32 286UL
+#define SYSTICK_FULL_TICKS_32 (SYSTICK_FULL_LOOPS_32*SYSTICK_LOOP)
+#define SYSTICK_FIRST_LOOP_32 (0xffffffff - SYSTICK_FULL_LOOPS_32*SYSTICK_LOOP)
 
 enum op_states
 {
@@ -31,9 +35,8 @@ volatile enum op_states op_state = OP_STATE_IDLE;
 
 size_t data_size = DEFAULT_POINTS;
 size_t data_idx = 0;
-bool *data = NULL;
+uint8_t *data = NULL;
 size_t *ticks = NULL;
-size_t tick_loops = -1;
 
 void measurement(void);
 
@@ -157,8 +160,7 @@ int measure(size_t argc, char *argv[])
 
 	op_state = OP_STATE_MEASUREMENT_STARTING;
 
-	multicore_reset_core1();
-	multicore_launch_core1(measurement);
+	measurement();
 
 	return PICO_CON_COMMAND_SUCCESS;
 }
@@ -171,30 +173,45 @@ void measurement(void)
 	gpio_set_dir(PROBE_PIN, GPIO_IN);
 	gpio_set_input_hysteresis_enabled(PROBE_PIN, 1);
 
-	tick_loops = -1;
-	tick_loops -= SYSTICK_RVR;
-	systick_hw->cvr = SYSTICK_RVR;
+	size_t tick_curr_base = SYSTICK_FULL_TICKS_32;
+	size_t tick_prev = SYSTICK_FIRST_LOOP_32;
+
+	uint8_t value_prev = gpio_get(PROBE_PIN)? 1 : 0;
+
+	systick_hw->cvr = SYSTICK_FIRST_LOOP_32;
 	systick_hw->rvr = SYSTICK_RVR;
 	systick_hw->csr = SYSTICK_CLKSOURCE_CPU | SYSTICK_ENABLE;
 
 	while (data_idx < data_size)
 	{
-		int csr = systick_hw->csr;
-		int cvr = systick_hw->cvr;
-		if (csr & SYSTICK_COUNTFLAG)
+		size_t tick_curr = systick_hw->cvr & SYSTICK_CURRENT;
+		if (tick_curr >= tick_prev)
 		{
-			tick_loops -= SYSTICK_RVR+1;
-		}
+			if (tick_curr_base <= 0)
+			{
+				break;
+			}
 
-		ticks[data_idx] = tick_loops + (cvr & SYSTICK_CURRENT);
-		data[data_idx] = gpio_get(PROBE_PIN);
-		data_idx++;
+			tick_curr_base -= SYSTICK_LOOP;
+		}
+		tick_prev = tick_curr;
+
+		size_t tick = tick_curr_base + tick_curr;
+
+		uint8_t value_curr = gpio_get(PROBE_PIN)? 1 : 0;
+		if (value_curr != value_prev)
+		{
+			data[data_idx] = (value_prev << 1) | value_curr;
+			ticks[data_idx] = tick;
+			data_idx++;
+
+			value_prev = value_curr;
+		}
 	}
+
+	systick_hw->csr = 0;
 
 	gpio_deinit(PROBE_PIN);
 
 	op_state = OP_STATE_IDLE;
-
-	while (1)
-		tight_loop_contents();
 }
