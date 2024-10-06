@@ -32,7 +32,7 @@ int main()
 	stdio_init_all();
 	banner();
 
-	puts(pico_con_loop(commands, INPUT_BUFFER_SIZE)? \
+	puts(pico_con_loop(commands, INPUT_BUFFER_SIZE, MODE_HUMAN_READABLE)? \
 	     "Failed to run serial console." :           \
 	     "Serial console closed.");
 
