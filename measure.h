@@ -6,7 +6,6 @@
 
 #define DEFAULT_POINTS 1000
 
-int status(size_t argc, char *argv[]);
 int measure(size_t argc, char *argv[]);
 int show_data(size_t argc, char *argv[]);
 
